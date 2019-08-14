@@ -1,0 +1,218 @@
+A look at Go 1.13 Errors
+14 Aug 2019
+
+Anderson Queiroz
+Onefootball
+contato@andersonq.eti.br
+https://github.com/AndersonQ/go1_13_errors
+
+
+* Agenda
+
+- A wee introduction on errors in Go
+- Go 2 draft design proposal on error
+- Go 1.13: what we have?
+- Code example
+- Questions?
+
+* Errors in Go
+
+* error interface
+
+- Any value implementing the `error` interface
+
+  // The error built-in interface type is the conventional interface for
+  // representing an error condition, with the nil value representing no error.
+  type error interface {
+  	Error() string
+  }
+
+- yields only a string
+- easy for humans to understand
+- but hard for programs
+
+* Four Common approaches to handle errors
+
+* Sentinel errors
+
+programs can test for equality with sentinel errors such as `sql.ErrNoRows`
+
+    // ErrNoRows is returned by Scan when QueryRow doesn't return a
+    // row. In such a case, QueryRow returns a placeholder *Row value that
+    // defers this error until a Scan.
+    var ErrNoRows = errors.New("sql: no rows in result set")
+
+  package os
+
+  if err == sql.ErrNoRows {
+      ... handle the error ...
+  }
+
+* Type assertion
+
+Similar to sentinel errors, but now we check if the error is from a give type
+then we can use its extra features
+
+    type PathError
+        func (e *PathError) Error() string
+        func (e *PathError) Timeout() bool
+
+
+  if pe, ok := err.(*os.PathError); ok {
+      if pe.Timeout() { ... }
+      ...
+  }
+
+
+* ad-hoc checks
+
+Helper functions which abstract away the check and give you just the answer
+
+    // IsNotExist returns a boolean indicating whether the error is known to
+    // report that a file or directory does not exist. It is satisfied by
+    // ErrNotExist as well as some syscall errors.
+    func IsNotExist(err error) bool
+
+  if os.IsNotExist(err) {
+      ...
+  }
+
+* substring searches
+
+Errors are essentially a string, so search something on it
+
+  if strings.Contains(err.Error(), "foo bar") {
+      ...
+  }
+
+The least desirable. However I often find myself tempted to do so
+
+
+* When we want to add more context/information?
+
+* Wrapping - the bright side
+
+It allows to preserve the original error and add a layer with as much information as we need.
+
+Good and common approach, several libraries do it, as well as the standard library.
+
+    package os
+
+    // SyscallError records an error from a specific system call.
+    type SyscallError struct {
+        Syscall string
+        Err     error
+    }
+
+- github.com/pkg/errors
+- gopkg.in/errgo.v2
+- github.com/hashicorp/errwrap
+- upspin.io/errors
+- github.com/spacemonkeygo/errors
+
+* Wrapping - the dark side
+
+we don't have access to underlying errors, therefore we lose:
+
+- equality with sentinel errors
+- type assertion
+- ad-hoc checks
+- only the library which wrapped the error can unwrap it
+
+* Go 2 draft design proposal on error
+
+* Unwrapping
+
+We need a standard way to handle unwrapping, so anyone can unwrap any error
+
+.code snippets.go /start_unwrap OMIT/,/end_unwrap OMIT/
+
+With a standard any program can now traverse any error chain and do any required check.
+We can even mix and match different libraries wrapping errors
+
+* Is and As
+
+Sentinel errors:
+
+    func Is(err, target error) bool
+
+Type assertion
+
+    func As(type E)(err error) (e E, ok bool)
+
+* Go 1.13: what we have?
+
+* Unwrap
+
+The standard way to unwrapping
+
+.code snippets.go /start_unwrap_go1.13 OMIT/,/end_unwrap_go1.13 OMIT/
+
+* Sentinel errors: Is()
+
+As we have a standard way to inspect the error chain, we can have a
+standard approach for checking for sentinel errors
+
+.code snippets.go /start_is OMIT/,/end_is OMIT/
+
+* Type assertion: As()
+
+Again, as we have a standard way to inspect the error chain, we can have a standard approach for type assertion
+
+.code snippets.go /start_as OMIT/,/end_as OMIT/
+
+Be aware:
+
+  if target == nil { panic("errors: target cannot be nil") }
+
+* No interfaces! O.O
+
+* What is the trick?
+
+.code snippets.go /start_go1.13 OMIT/,/end_go1.13 OMIT/
+
+`errors` package already have the functions defined and work with any type
+implementing them.
+
+Just the interface itself is neither defined nor exported
+
+* What else?
+
+* fmt
+
+_The_Errorf_function_has_a_new_verb,_ *%w* _,_whose_operand_must_be_an_error._The_error_returned_from_Errorf_will_have_an_Unwrap_method_which_returns_theoperand_of_%w_
+
+.play runnables.go /start_fmt OMIT/,/end_fmt OMIT/
+
+* Show me the code!
+
+* Last tip
+
+* modules
+
+* Module configuration for non-public modules
+
+The go command defaults to downloading modules from the public Go module mirror at proxy.golang.org
+
+The new GOPRIVATE environment variable indicates module paths that are not publicly available.
+
+That means, set
+
+    GOPRIVATE=github.com/myOrg/*
+
+for private repos, otherwise it might not find your repos
+
+* When will it be released?
+
+- The plan was this month
+- An RC is planned for this week
+- so, soon I'd say ;)
+
+* Questions?
+
+* Resources
+
+- https://go.googlesource.com/proposal/+/master/design/go2draft-error-inspection.md
+- https://go.googlesource.com/proposal/+/master/design/go2draft-error-values-overview.md
+- https://go.googlesource.com/proposal/+/master/design/go2draft-error-values-overview.md
+- https://tip.golang.org/doc/go1.13
