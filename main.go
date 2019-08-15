@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	pkgErrors "github.com/pkg/errors"
+	pkgErr "github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -35,7 +35,7 @@ func main() {
 
 	id = 3
 	_, err = pokemon.Find(id)
-	handle113Error(myerrors.Wrap(err, "myerror wrapping"), id)
+	handle113Error(pkgErr.Wrap(myerrors.Wrap(err, "myerror wrapping"), "more wrapping"), id)
 	log.Info().Msg("----------------------------------------")
 
 	log.Info().Msg("----------------------------------------")
@@ -60,9 +60,10 @@ func main() {
 	err = fmt.Errorf("an error")
 	err = myerrors.Wrap(err, "1s wrapping error with myerrors.Wrap")
 	err = fmt.Errorf("2nd wrapping with fmt.Errorf: %w", err)
-	err = pkgErrors.Wrapf(err, "3rd wrapping with pkg/errors", err)
+	err = pkgErr.Wrapf(err, "3rd wrapping with pkg/errors", err)
 
 	log.Info().Msgf("%T: err: %s", err, err)
+
 	if err = errors.Unwrap(err); err != nil {
 		log.Info().Msgf("1st errors.Unwrap(err): %T: %s", err, err.Error())
 	}
