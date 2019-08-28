@@ -3,7 +3,7 @@ A look at Go 1.13 Errors
 
 A talk presented on [August Golang meetup](https://www.meetup.com/golang-users-berlin/events/259188830/)
 showing where we are in the proposal to enhance error handling for Go 2 and what was added already
-in go 1.13
+in go 1.13. I also wrote a [blog post](https://medium.com/onefootball-locker-room/a-look-at-go-1-13-errors-9f6c9f6accb6) about it
 
 The slides use go [present](https://godoc.org/golang.org/x/tools/present). To render the presentation:
 1. have go present `golang.org/x/tools/present` (`go get golang.org/x/tools/cmd/present`)
